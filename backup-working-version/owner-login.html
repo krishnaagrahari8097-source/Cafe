@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Owner Login</title>
+</head>
+<body>
+
+<h2>Owner Login</h2>
+
+<input type="email" id="email" placeholder="Email">
+<br><br>
+
+<input type="password" id="password" placeholder="Password">
+<br><br>
+
+<button id="loginBtn">Login</button>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyADCxKRixHtJsRhmsNkS3eJ5FL6Cay5X-M",
+  authDomain: "arshprintofficial.firebaseapp.com",
+  projectId: "arshprintofficial",
+  storageBucket: "arshprintofficial.firebasestorage.app",
+  messagingSenderId: "989933965159",
+  appId: "1:989933965159:web:062c1dd1728b985b95a9c2"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+document.getElementById("loginBtn").addEventListener("click", async () => {
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+
+        await signInWithEmailAndPassword(auth, email, password);
+
+        localStorage.setItem("ownerLoggedIn", "true");
+
+        window.location.href = "scanner.html";
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>

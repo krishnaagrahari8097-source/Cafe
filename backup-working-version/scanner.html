@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Owner QR Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+        body{
+            font-family:Arial,sans-serif;
+            text-align:center;
+            padding:20px;
+            background:#f5f5f5;
+        }
+
+        #reader{
+            width:350px;
+            margin:auto;
+        }
+
+        #result{
+            margin-top:20px;
+            padding:15px;
+            background:white;
+            border-radius:10px;
+        }
+
+        button{
+            padding:10px 20px;
+            margin-top:10px;
+            cursor:pointer;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Owner QR Scanner</h2>
+<button onclick="logout()">Logout</button>
+<button onclick="exportCustomers()">Export Customers</button>
+<div id="reader"></div>
+
+<div id="result">
+    Waiting for QR...
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+if(localStorage.getItem("ownerLoggedIn") !== "true"){
+
+    window.location.href = "owner-login.html";
+
+}
+
+const firebaseConfig = {
+  apiKey: "AIzaSyADCxKRixHtJsRhmsNkS3eJ5FL6Cay5X-M",
+  authDomain: "arshprintofficial.firebaseapp.com",
+  databaseURL: "https://arshprintofficial-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "arshprintofficial",
+  storageBucket: "arshprintofficial.firebasestorage.app",
+  messagingSenderId: "989933965159",
+  appId: "1:989933965159:web:062c1dd1728b985b95a9c2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window.logout = function(){
+
+    localStorage.removeItem("ownerLoggedIn");
+
+    alert("Logged Out Successfully");
+
+    window.location.href = "owner-login.html";
+
+}
+
+window.exportCustomers = async function(){
+
+    const snapshot = await get(ref(db,"customers"));
+
+    if(!snapshot.exists()){
+        alert("No customers found");
+        return;
+    }
+
+    const customers = snapshot.val();
+
+    let csv = "Name,Phone,Email,Punches,Rewards\n";
+
+    Object.keys(customers).forEach(key => {
+
+        const c = customers[key];
+
+        csv +=
+        `"${c.name || ""}",` +
+        `"${c.phone || ""}",` +
+        `"${c.email || ""}",` +
+        `"${c.punches || 0}",` +
+        `"${c.rewardsEarned || 0}"\n`;
+
+    });
+
+    const blob = new Blob([csv], {
+        type: "text/csv"
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "customers.csv";
+
+    document.body.appendChild(a);
+
+    a.click();
+
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+async function onScanSuccess(decodedText){
+
+    try{
+
+        const data = JSON.parse(decodedText);
+
+        const snapshot = await get(ref(db,"customers"));
+
+        const customers = snapshot.val();
+
+        let foundCustomer = null;
+
+        Object.keys(customers).forEach(key => {
+            if(customers[key].customerId === data.customerId){
+                foundCustomer = customers[key];
+            }
+        });
+
+        if(foundCustomer){
+
+            document.getElementById("result").innerHTML =
+    "<h3>Customer Found</h3>" +
+    "<p>Name: " + foundCustomer.name + "</p>" +
+    "<p>Customer ID: " + foundCustomer.customerId + "</p>" +
+    "<p>Punches: " + foundCustomer.punches + "</p>" +
+    "<button onclick='addPunch(\"" + foundCustomer.customerId + "\")'>Add Punch</button>";
+        }else{
+
+            document.getElementById("result").innerHTML =
+                "<h3>Customer Not Found</h3>";
+
+        }
+
+    }catch(error){
+
+        console.error(error);
+
+    }
+
+}
+window.addPunch = async function(customerId){
+
+    const snapshot = await get(ref(db,"customers"));
+
+    const customers = snapshot.val();
+
+    let firebaseKey = null;
+    let customer = null;
+
+    Object.keys(customers).forEach(key => {
+
+        if(customers[key].customerId === customerId){
+            firebaseKey = key;
+            customer = customers[key];
+        }
+
+    });
+
+    if(!customer){
+        alert("Customer not found");
+        return;
+    }
+
+    let punches = customer.punches || 0;
+    let rewards = customer.rewardsEarned || 0;
+const lastPunch = customer.lastPunch || 0;
+
+const hoursPassed =
+(Date.now() - lastPunch) / (1000 * 60 * 60);
+
+if(hoursPassed < 24){
+
+    alert("Customer already received a punch today");
+
+    return;
+
+}
+    punches++;
+
+    if(punches >= 10){
+        rewards++;
+        punches = 0;
+    }
+
+    await import("https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js")
+    .then(async ({ update }) => {
+
+        await update(
+            ref(db,"customers/" + firebaseKey),
+            {
+                punches: punches,
+                rewardsEarned: rewards,
+                lastPunch: Date.now()
+            }
+        );
+
+    });
+
+    alert("Punch Added Successfully");
+
+}
+const scanner = new Html5QrcodeScanner(
+    "reader",
+    {
+        fps: 10,
+        qrbox: 250
+    }
+);
+
+scanner.render(onScanSuccess);
+
+</script>
+
+</script>
+
+</body>
+</html>

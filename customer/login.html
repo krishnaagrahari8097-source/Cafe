@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Brew Loyalty Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body{
+            font-family:Arial,sans-serif;
+            background:#f5f5f5;
+            padding:20px;
+        }
+
+        .card{
+            max-width:400px;
+            margin:auto;
+            background:white;
+            padding:20px;
+            border-radius:10px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+
+        input{
+            width:100%;
+            padding:12px;
+            margin-top:10px;
+            box-sizing:border-box;
+        }
+
+        button{
+            width:100%;
+            padding:12px;
+            margin-top:10px;
+            background:#2C1A0E;
+            color:white;
+            border:none;
+            cursor:pointer;
+        }
+
+        h2{
+            text-align:center;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Brew Loyalty Login</h2>
+<p>Your loyalty journey begins...</p>
+
+<input type="text" placeholder="Full Name" id="name">
+
+<input type="email" placeholder="Email Address" id="email">
+
+<input type="tel" placeholder="Phone Number" id="phone">
+
+<input type="date" id="dob">
+<input
+type="text"
+id="referralCode"
+placeholder="Referral Code (Optional)"
+>
+<button onclick="registerUser()">
+Register / Login
+</button>
+</div>
+
+</body>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, set , get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyADCxKRixHtJsRhmsNkS3eJ5FL6Cay5X-M",
+  authDomain: "arshprintofficial.firebaseapp.com",
+  databaseURL: "https://arshprintofficial-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "arshprintofficial",
+  storageBucket: "arshprintofficial.firebasestorage.app",
+  messagingSenderId: "989933965159",
+  appId: "1:989933965159:web:062c1dd1728b985b95a9c2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.registerUser = async function(){
+
+    console.log("FUNCTION STARTED");
+
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const phone = document.getElementById("phone").value;
+    const dob = document.getElementById("dob").value;
+    const referralCode =
+document.getElementById("referralCode").value;
+
+    if(!name || !email || !phone || !dob){
+        alert("Please fill all fields");
+        return;
+    }
+
+    try {
+
+        const snapshot = await get(ref(db,"customers"));
+
+        if(snapshot.exists()){
+
+            const customers = snapshot.val();
+
+            for(const id in customers){
+
+                if(customers[id].phone === phone){
+
+                    localStorage.setItem(
+                        "customerId",
+                        customers[id].customerId
+                    );
+
+                    alert("Welcome Back " + customers[id].name);
+
+                    window.location.href = "./dashboard.html";
+                    return;
+                }
+            }
+        }
+
+
+        const customerId = "ARSH-" + Date.now();
+        const myReferralCode =
+name.replace(/\s+/g,'').toUpperCase() +
+Math.floor(Math.random() * 1000);
+
+        await set(ref(db, "customers/" + customerId), {
+            customerId,
+            name,
+            email,
+            phone,
+            dob,
+            referralCode: myReferralCode,
+referredBy: referralCode || "",
+            punches: 0,
+            rewardsEarned: 0,
+            rewardsRedeemed: 0,
+            createdAt: new Date().toISOString()
+        });
+
+        document.body.innerHTML = `
+        <div style="
+        height:100vh;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        flex-direction:column;
+        background:#f5f5f5;
+        font-family:Arial;
+        ">
+            <div style="
+            position:relative;
+            width:120px;
+            height:140px;
+            border:6px solid #2C1A0E;
+            border-radius:0 0 20px 20px;
+            overflow:hidden;
+            ">
+                <div id="coffee" style="
+                position:absolute;
+                bottom:0;
+                width:100%;
+                height:0%;
+                background:#6F4E37;
+                animation:fillCoffee 2.5s forwards;
+                "></div>
+            </div>
+
+            <h2 style="margin-top:20px;color:#2C1A0E;">
+            Brewing Your Rewards...
+            </h2>
+        </div>
+
+        <style>
+        @keyframes fillCoffee{
+            from{height:0%;}
+            to{height:100%;}
+        }
+        </style>
+        `;
+
+        setTimeout(() => {
+
+            localStorage.setItem(
+                "customerId",
+                customerId
+            );
+
+            window.location.href = "./dashboard.html";
+
+        }, 2500);
+
+    } catch(error){
+
+        console.error(error);
+        alert(error.message);
+
+    }
+
+}
+
+</script>
+</html>

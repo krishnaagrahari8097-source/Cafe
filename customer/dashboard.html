@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body{
+    font-family:Arial,sans-serif;
+    background:linear-gradient(180deg,#F7E7CE,#E8D3B9);
+    padding:20px;
+}
+
+
+        .card{
+            max-width:500px;
+            margin:auto;
+            background:white;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h2{
+            text-align:center;
+        }
+
+        .info{
+            margin:10px 0;
+            padding:12px;
+            background:#f0f0f0;
+            border-radius:8px;
+        }
+
+        .reward{
+            text-align:center;
+            font-size:22px;
+            font-weight:bold;
+            color:green;
+            margin-top:20px;
+        }
+.coffeeMug{
+    width:140px;
+    height:170px;
+    margin:auto;
+    position:relative;
+    overflow:hidden;
+    background:white;
+    border:5px solid #6F4E37;
+    border-radius:0 0 30px 30px;
+}
+
+.coffeeMug::after{
+    content:"";
+    position:absolute;
+    right:-30px;
+    top:40px;
+    width:35px;
+    height:60px;
+    border:5px solid #6F4E37;
+    border-left:none;
+    border-radius:0 30px 30px 0;
+}
+
+/* PASTE THE STEAM CODE HERE */
+
+.coffeeMug::before{
+    content:"☁";
+    position:absolute;
+    top:-30px;
+    left:55px;
+    font-size:20px;
+    animation:steam 2s infinite;
+}
+
+@keyframes steam{
+    from{
+        opacity:0.2;
+        transform:translateY(0);
+    }
+    to{
+        opacity:0;
+        transform:translateY(-20px);
+    }
+}
+
+#coffeeFill{
+    position:absolute;
+    left:0;
+    bottom:0;
+    width:100%;
+    height:0%;
+    background:linear-gradient(
+        to top,
+        #4A2C2A,
+        #8B5A2B
+    );
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    font-weight:bold;
+    transition:height 2s ease;
+}
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h2>Customer Dashboard</h2>
+
+    <div id="qrBox">
+    <div id="qrcode"></div>
+    <p id="qrTimer">Refreshing...</p>
+</div>
+<h3 style="text-align:center;">Coffee Progress ☕</h3>
+
+<div class="coffeeMug" style="border:5px solid red;">
+    <div id="coffeeFill">0%</div>
+</div>
+
+<p id="nextReward" style="text-align:center;">
+    Loading...
+</p>
+<div class="info">
+    <strong>Customer ID:</strong>
+    <span id="customerId">Loading...</span>
+</div>
+
+    <div class="info">
+    <strong>Name:</strong>
+    <span id="customerName">Loading...</span>
+</div>
+
+<div class="info">
+    <strong>🎁 Referral Code:</strong>
+    <span id="myReferralCode">Loading...</span>
+</div>
+
+    <div class="info">
+        <strong>Punches:</strong>
+        <span id="punches">0</span>
+    </div>
+
+    <div class="info">
+        <strong>Rewards Earned:</strong>
+        <span id="rewards">0</span>
+    </div>
+
+    <div class="reward">
+        Buy 10 = Get 1 Free Coffee ☕
+    </div>
+
+  
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyADCxKRixHtJsRhmsNkS3eJ5FL6Cay5X-M",
+  authDomain: "arshprintofficial.firebaseapp.com",
+  databaseURL: "https://arshprintofficial-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "arshprintofficial",
+  storageBucket: "arshprintofficial.firebasestorage.app",
+  messagingSenderId: "989933965159",
+  appId: "1:989933965159:web:062c1dd1728b985b95a9c2"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+function generateQR(customerId){
+
+    document.getElementById("qrcode").innerHTML = "";
+    console.log("Generating New QR:", Date.now());
+
+    const token = Math.random().toString(36).substring(2);
+
+    const qrData = JSON.stringify({
+        customerId: customerId,
+        token: token,
+        expires: Date.now() + 60000
+    });
+    console.log(qrData);
+
+    new QRCode(
+        document.getElementById("qrcode"),
+        {
+            text: qrData,
+            width: 200,
+            height: 200
+        }
+    );
+console.log("New QR Generated:", new Date().toLocaleTimeString());
+}
+async function loadCustomer(){
+
+    
+
+    const snapshot = await get(ref(db,"customers"));
+
+    if(snapshot.exists()){
+
+        const customers = snapshot.val();
+
+     const customerId = localStorage.getItem("customerId");
+
+console.log("Saved Customer ID:", customerId);
+console.log("Firebase Customers:", customers);
+
+if(!customers[customerId]){
+    alert("Customer not found. Please login again.");
+    window.location.href = "./login.html";
+    return;
+}
+
+const customer = customers[customerId];
+
+        document.getElementById("customerId").innerText =
+        customer.customerId;
+
+        document.getElementById("customerName").innerText =
+        customer.name;
+
+        document.getElementById("myReferralCode").innerText =
+customer.referralCode || "Not Available";
+
+console.log(customer);
+console.log("Referral Code:", customer.referralCode);
+
+        document.getElementById("punches").innerText =
+        customer.punches;
+
+        document.getElementById("rewards").innerText =
+        customer.rewardsEarned;
+       const percent = customer.punches * 10;
+
+console.log("Percent:", percent);
+setTimeout(() => {
+
+    document.getElementById("coffeeFill").style.height =
+    percent + "%";
+    console.log(
+    document.getElementById("coffeeFill").style.height
+);
+
+}, 300);
+
+document.getElementById("coffeeFill").innerText =
+percent + "%";
+
+document.getElementById("nextReward").innerText =
+(10 - customer.punches) +
+" punches away from your FREE Coffee ☕";
+        generateQR(customer.customerId);
+
+setInterval(() => {
+
+    generateQR(customer.customerId);
+
+}, 60000);
+    }
+
+}
+
+loadCustomer();
+setInterval(() => {
+    loadCustomer();
+}, 60000);
+
+
+</script>
+
+</body>
+</html>
